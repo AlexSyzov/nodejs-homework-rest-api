@@ -12,7 +12,7 @@ const contactCreationSchema = Joi.object({
 });
 
 const contactUpdateSchema = Joi.object({
-  name: Joi.string().alphanum().min(1).max(30).optional(),
+  name: Joi.string().min(1).max(30).optional(),
   phone: Joi.string()
     .pattern(new RegExp(/^\([0-9]{3}\) [0-9]{3}-[0-9]{4}/))
     .optional(),
@@ -27,8 +27,8 @@ const validate = (schema, body, next) => {
   if (error) {
     return next({
       status: HttpCode.BAD_REQUEST,
-      message: "missing required name field",
-      data: "Bad Request",
+      message:
+        "Bad request: missing required name field or the data is invalid. Please check your request",
     });
   }
 
