@@ -19,7 +19,7 @@ const contactUpdateSchema = Joi.object({
   email: Joi.string()
     .email({ minDomainSegments: 2, tlds: { allow: false } })
     .optional(),
-});
+}).min(1);
 
 const validate = (schema, body, next) => {
   const { error } = schema.validate(body);

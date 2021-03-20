@@ -22,7 +22,7 @@ class ContactsRepository {
 
   async update(id, body) {
     const data = await this.model.findByIdAndUpdate(
-      { _id: id },
+      id,
       { ...body },
       { new: true }
     );
@@ -31,9 +31,7 @@ class ContactsRepository {
   }
 
   async remove(id) {
-    const data = await this.model.findByIdAndRemove({
-      _id: id,
-    });
+    const data = await this.model.findByIdAndRemove(id);
 
     return data;
   }
