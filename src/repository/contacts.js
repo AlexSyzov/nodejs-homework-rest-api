@@ -1,56 +1,41 @@
-const db = require("../db");
+const { Contact } = require("../schemas/contacts");
 
 class ContactsRepository {
-  getAll() {
-    return db.get("contacts").value();
+  constructor() {
+    this.model = Contact;
   }
 
-  getById(id) {
-    const contactId = Number(id);
-
-    return db.get("contacts").find({ id: contactId }).value();
+  async getAll() {
+    const data = await this.model.find({});
+    return data;
   }
 
-  create(body) {
-    const contacts = db.get("contacts").value();
-    const length = db.get("contacts").value().length;
-
-    const id = contacts[length - 1].id + 1;
-
-    const record = {
-      id,
-      ...body,
-    };
-
-    db.get("contacts").push(record).write();
-
-    return record;
+  async getById(id) {
+    const data = await this.model.findOne({ _id: id });
+    return data;
   }
 
-  update(id, body) {
-    const contactId = Number(id);
-
-    if (Object.keys(body).length == 0) {
-      return "No fields";
-    }
-
-    const record = db
-      .get("contacts")
-      .find({ id: contactId })
-      .assign(body)
-      .value();
-
-    db.write();
-
-    return record.id ? record : null;
+  async create(body) {
+    const data = await this.model.create(body);
+    return data;
   }
 
-  remove(id) {
-    const contactId = Number(id);
+  async update(id, body) {
+    const data = await this.model.findByIdAndUpdate(
+      { _id: id },
+      { ...body },
+      { new: true }
+    );
 
-    const [record] = db.get("contacts").remove({ id: contactId }).write();
+    return data;
+  }
 
-    return record;
+  async remove(id) {
+    const data = await this.model.findByIdAndRemove({
+      _id: id,
+    });
+
+    return data;
   }
 }
 
