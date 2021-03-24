@@ -5,24 +5,48 @@ class ContactsRepository {
     this.model = Contact;
   }
 
-  async getAll() {
-    const data = await this.model.find({});
+  async getAll(
+    userId,
+    { page = 1, limit = 5, sortBy, sortByDesc, filter, sub }
+  ) {
+    let data = await this.model.paginate(
+      { owner: userId },
+      {
+        page,
+        limit,
+        sort: {
+          ...(sortBy ? { [`${sortBy}`]: 1 } : {}),
+          ...(sortByDesc ? { [`${sortByDesc}`]: -1 } : {}),
+        },
+        select: filter ? filter.split("|").join(" ") : "",
+        populate: {
+          path: "owner",
+          select: "name email -_id",
+        },
+      }
+    ); // Не нашёл, как с помощью этого можно отфильтровать сами контакты, а не только их поля
+
     return data;
   }
 
-  async getById(id) {
-    const data = await this.model.findOne({ _id: id });
+  async getById(userId, id) {
+    const data = await this.model.findOne({ _id: id, owner: userId }).populate({
+      path: "owner",
+      select: "name email -_id",
+    });
+
     return data;
   }
 
-  async create(body) {
-    const data = await this.model.create(body);
+  async create(userId, body) {
+    const data = await this.model.create({ ...body, owner: userId });
     return data;
   }
 
-  async update(id, body) {
+  async update(userId, id, body) {
     const data = await this.model.findByIdAndUpdate(
-      { _id: id },
+      id,
+      { owner: userId },
       { ...body },
       { new: true }
     );
@@ -30,9 +54,9 @@ class ContactsRepository {
     return data;
   }
 
-  async remove(id) {
-    const data = await this.model.findByIdAndRemove({
-      _id: id,
+  async remove(userId, id) {
+    const data = await this.model.findByIdAndRemove(id, {
+      owner: userId,
     });
 
     return data;
