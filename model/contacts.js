@@ -2,15 +2,16 @@ const { HttpCode } = require("../src/helpers/constants");
 const { ContactsService } = require("../src/services");
 const contactsService = new ContactsService();
 
-const listContacts = async (_, res, next) => {
+const listContacts = async (req, res, next) => {
   try {
-    const contacts = await contactsService.getAll();
+    const userId = req.user.id;
+    const contacts = await contactsService.getAll(userId, req.query);
 
     res.status(HttpCode.OK).json({
       status: "success",
       code: HttpCode.OK,
       data: {
-        contacts,
+        ...contacts,
       },
     });
   } catch (e) {
@@ -20,7 +21,8 @@ const listContacts = async (_, res, next) => {
 
 const getContactById = async (req, res, next) => {
   try {
-    const contact = await contactsService.getById(req.params);
+    const userId = req.user.id;
+    const contact = await contactsService.getById(userId, req.params);
 
     if (contact) {
       res.status(HttpCode.OK).json({
@@ -44,7 +46,8 @@ const getContactById = async (req, res, next) => {
 
 const removeContact = async (req, res, next) => {
   try {
-    const contact = await contactsService.remove(req.params);
+    const userId = req.user.id;
+    const contact = await contactsService.remove(userId, req.params);
 
     if (contact) {
       res.status(HttpCode.OK).json({
@@ -68,7 +71,8 @@ const removeContact = async (req, res, next) => {
 
 const addContact = async (req, res, next) => {
   try {
-    const contact = await contactsService.create(req.body);
+    const userId = req.user.id;
+    const contact = await contactsService.create(userId, req.body);
 
     if (contact) {
       res.status(HttpCode.CREATED).json({
@@ -92,7 +96,8 @@ const addContact = async (req, res, next) => {
 
 const updateContact = async (req, res, next) => {
   try {
-    const contact = await contactsService.update(req.params, req.body);
+    const userId = req.user.id;
+    const contact = await contactsService.update(userId, req.params, req.body);
 
     if (contact === "No fields") {
       return next({

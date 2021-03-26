@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const mongoosePaginate = require("mongoose-paginate-v2");
 const { Schema } = mongoose;
 
 const contactSchema = new Schema(
@@ -17,9 +18,20 @@ const contactSchema = new Schema(
       type: String,
       required: [true, "Email is required"],
     },
+    subscription: {
+      type: String,
+      enum: ["free", "pro", "premium"],
+      default: "free",
+    },
+    owner: {
+      type: mongoose.SchemaTypes.ObjectId,
+      ref: "user",
+    },
   },
   { versionKey: false }
 );
+
+contactSchema.plugin(mongoosePaginate);
 
 const Contact = mongoose.model("contact", contactSchema);
 
