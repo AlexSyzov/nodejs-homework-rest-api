@@ -1,136 +1,62 @@
-const { HttpCode } = require("../src/helpers/constants");
-const { ContactsService } = require("../src/services");
-const contactsService = new ContactsService();
+const { Contact } = require("../src/schemas/contact");
 
-const listContacts = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const contacts = await contactsService.getAll(userId, req.query);
+class ContactsModel {
+  constructor() {
+    this.model = Contact;
+  }
 
-    res.status(HttpCode.OK).json({
-      status: "success",
-      code: HttpCode.OK,
-      data: {
-        ...contacts,
-      },
+  async getAll(userId, { page = 1, limit = 5, sortBy, sortByDesc, filter }) {
+    let data = await this.model.paginate(
+      { owner: userId },
+      {
+        page,
+        limit,
+        sort: {
+          ...(sortBy ? { [`${sortBy}`]: 1 } : {}),
+          ...(sortByDesc ? { [`${sortByDesc}`]: -1 } : {}),
+        },
+        select: filter ? filter.split("|").join(" ") : "",
+        populate: {
+          path: "owner",
+          select: "name email -_id",
+        },
+      }
+    ); // Не нашёл, как с помощью этого можно отфильтровать сами контакты, а не только их поля
+
+    return data;
+  }
+
+  async getById(userId, id) {
+    const data = await this.model.findOne({ _id: id, owner: userId }).populate({
+      path: "owner",
+      select: "name email -_id",
     });
-  } catch (e) {
-    next(e);
+
+    return data;
   }
-};
 
-const getContactById = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const contact = await contactsService.getById(userId, req.params);
-
-    if (contact) {
-      res.status(HttpCode.OK).json({
-        status: "success",
-        code: HttpCode.OK,
-        data: {
-          contact,
-        },
-      });
-    } else {
-      return next({
-        status: HttpCode.NOT_FOUND,
-        message: "Not found",
-        data: "Not found",
-      });
-    }
-  } catch (e) {
-    next(e);
+  async create(userId, body) {
+    const data = await this.model.create({ ...body, owner: userId });
+    return data;
   }
-};
 
-const removeContact = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const contact = await contactsService.remove(userId, req.params);
+  async update(userId, id, body) {
+    const data = await this.model.findOneAndUpdate(
+      { _id: id, owner: userId },
+      { ...body },
+      { new: true }
+    );
 
-    if (contact) {
-      res.status(HttpCode.OK).json({
-        status: "success",
-        code: HttpCode.OK,
-        data: {
-          message: "contact deleted",
-        },
-      });
-    } else {
-      return next({
-        status: HttpCode.NOT_FOUND,
-        message: "Not found",
-        data: "Not found",
-      });
-    }
-  } catch (e) {
-    next(e);
+    return data;
   }
-};
 
-const addContact = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const contact = await contactsService.create(userId, req.body);
+  async remove(userId, id) {
+    const data = await this.model.findByIdAndRemove(id, {
+      owner: userId,
+    });
 
-    if (contact) {
-      res.status(HttpCode.CREATED).json({
-        status: "success",
-        code: HttpCode.CREATED,
-        data: {
-          contact,
-        },
-      });
-    } else {
-      return next({
-        status: HttpCode.NOT_FOUND,
-        message: "Not found",
-        data: "Not found",
-      });
-    }
-  } catch (e) {
-    next(e);
+    return data;
   }
-};
+}
 
-const updateContact = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    const contact = await contactsService.update(userId, req.params, req.body);
-
-    if (contact === "No fields") {
-      return next({
-        status: HttpCode.BAD_REQUEST,
-        message: "missing fields",
-        data: "missing fields",
-      });
-    }
-
-    if (contact) {
-      res.status(HttpCode.OK).json({
-        status: "success",
-        code: HttpCode.OK,
-        data: {
-          contact,
-        },
-      });
-    } else {
-      return next({
-        status: HttpCode.NOT_FOUND,
-        message: "Not found",
-        data: "Not found",
-      });
-    }
-  } catch (e) {
-    next(e);
-  }
-};
-
-module.exports = {
-  listContacts,
-  getContactById,
-  removeContact,
-  addContact,
-  updateContact,
-};
+module.exports = ContactsModel;

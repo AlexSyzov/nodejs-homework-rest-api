@@ -19,16 +19,21 @@ const contactUpdateSchema = Joi.object({
   email: Joi.string()
     .email({ minDomainSegments: 2, tlds: { allow: false } })
     .optional(),
-});
+}).min(1);
 
 const validate = (schema, body, next) => {
   const { error } = schema.validate(body);
 
   if (error) {
+    const [{ message: errorMessage }] = error.details;
     return next({
-      status: HttpCode.BAD_REQUEST,
-      message:
-        "Bad request: missing required name field or the data is invalid. Please check your request",
+      Status: HttpCode.BAD_REQUEST,
+      data: "Bad Request",
+      message: `Field: ${
+        errorMessage.includes("phone")
+          ? "phone must be a valid phone: (XXX) XXX-XXXX"
+          : errorMessage.replace(/"/g, "")
+      }`,
     });
   }
 

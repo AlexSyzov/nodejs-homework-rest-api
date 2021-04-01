@@ -3,6 +3,8 @@ const logger = require("morgan");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const path = require("path");
+require("dotenv").config();
 const { HttpCode } = require("./helpers/constants");
 const { apiLimit, jsonLimit } = require("./config/rateLimit.json");
 
@@ -11,6 +13,9 @@ const authRouter = require("../routes/api/auth");
 const usersRouter = require("../routes/api/users");
 
 const app = express();
+
+const AVATARS_OF_USERS = process.env.AVATARS_OF_USERS;
+app.use("/images", express.static(path.join(process.cwd(), AVATARS_OF_USERS)));
 
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
@@ -44,11 +49,10 @@ app.use((err, req, res, next) => {
   err.Status = err.Status ? err.Status : HttpCode.INTERNAL_SERVER_ERROR;
 
   res.status(err.Status).json({
-    Status: err.message.includes("validation")
-      ? "400 Bad Request"
-      : err.Status === 500
-      ? "500 Internal Server Error"
-      : err.Status + " " + err.data,
+    Status:
+      err.Status === 500
+        ? "500 Internal Server Error"
+        : err.Status + " " + err.data,
     ["Content-Type"]: "application/json",
     ResponseBody: {
       message: err.message,
