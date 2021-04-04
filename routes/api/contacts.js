@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const contactsController = require("../../model/contacts");
+const contactsController = require("../../src/controllers/contacts");
 const guard = require("../../src/helpers/guard");
 const {
   validateContactCreation,

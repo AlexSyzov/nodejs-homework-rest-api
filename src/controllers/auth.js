@@ -1,7 +1,12 @@
-const { AuthService, UsersService } = require("../src/services");
-const { HttpCode } = require("../src/helpers/constants");
+const { AuthService, UsersService } = require("../services");
+const { HttpCode } = require("../helpers/constants");
+const path = require("path");
+const fs = require("fs/promises");
 const usersService = new UsersService();
 const authService = new AuthService();
+const Jimp = require("jimp");
+const createFolderIfDoesNotExist = require("../helpers/createDir");
+require("dotenv").config();
 
 const reg = async (req, res, next) => {
   const { email, password, subscription } = req.body;
@@ -52,6 +57,7 @@ const login = async (req, res, next) => {
           user: {
             email: email,
             subscription: user.subscription,
+            avatar: user.avatar,
           },
         },
       });
@@ -76,8 +82,47 @@ const logout = async (req, res, _) => {
     .json({ Status: HttpCode.NO_CONTENT, data: "No Content" });
 };
 
+const avatars = async (req, res, next) => {
+  try {
+    const id = req.user.id;
+    const avatarUrl = await saveAvatarToStatic(req);
+
+    await authService.updateAvatar(id, avatarUrl);
+
+    return res.status(HttpCode.OK).json({
+      Status: HttpCode.OK + " OK",
+      data: `${avatarUrl}`,
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+const saveAvatarToStatic = async (req) => {
+  const id = String(req.user._id);
+  const AVATARS_OF_USERS = process.env.AVATARS_OF_USERS;
+  const filePath = req.file.path;
+
+  const newAvatarName = `${Date.now()}-${req.file.originalname}`;
+  const img = await Jimp.read(filePath);
+
+  await img
+    .autocrop()
+    .cover(250, 250, Jimp.HORIZONTAL_ALIGN_CENTER | Jimp.VERTICAL_ALIGN_MIDDLE)
+    .writeAsync(filePath);
+
+  await createFolderIfDoesNotExist(path.join(AVATARS_OF_USERS, id));
+
+  await fs.rename(filePath, path.join(AVATARS_OF_USERS, id, newAvatarName));
+
+  const avatarUrl = path.normalize(path.join(id, newAvatarName));
+
+  return avatarUrl;
+};
+
 module.exports = {
   reg,
   login,
   logout,
+  avatars,
 };

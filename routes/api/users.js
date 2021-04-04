@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const usersController = require("../../model/users");
+const usersController = require("../../src/controllers/users");
 const guard = require("../../src/helpers/guard");
 
 router
