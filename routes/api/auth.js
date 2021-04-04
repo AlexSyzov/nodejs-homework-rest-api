@@ -14,6 +14,7 @@ router
     "/avatars",
     [guard, upload.single("avatar"), validateAvatarUpload],
     authController.avatars
-  );
+  )
+  .get("/verify/:token", authController.verify);
 
 module.exports = router;
