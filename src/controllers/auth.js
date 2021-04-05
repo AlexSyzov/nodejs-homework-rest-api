@@ -1,4 +1,4 @@
-const { AuthService, UsersService } = require("../services");
+const { AuthService, UsersService, EmailService } = require("../services");
 const { HttpCode } = require("../helpers/constants");
 const path = require("path");
 const fs = require("fs/promises");
@@ -6,10 +6,11 @@ const usersService = new UsersService();
 const authService = new AuthService();
 const Jimp = require("jimp");
 const createFolderIfDoesNotExist = require("../helpers/createDir");
+const { nanoid } = require("nanoid");
 require("dotenv").config();
 
 const reg = async (req, res, next) => {
-  const { email, password, subscription } = req.body;
+  const { name, email } = req.body;
   const user = await usersService.findByEmail(email);
 
   if (user) {
@@ -21,10 +22,14 @@ const reg = async (req, res, next) => {
   }
 
   try {
+    const verifyToken = nanoid();
+    const emailService = new EmailService(process.env.NODE_ENV);
+    await emailService.sendEmail(verifyToken, email, name);
+
     const newUser = await usersService.create({
-      email,
-      password,
-      subscription,
+      ...req.body,
+      verify: false,
+      verifyToken,
     });
 
     return res.status(HttpCode.CREATED).json({
@@ -43,30 +48,37 @@ const reg = async (req, res, next) => {
 };
 
 const login = async (req, res, next) => {
-  const { email, password } = req.body;
-
   try {
+    const { email, password } = req.body;
     const { user, token } = await authService.login({ email, password });
 
-    if (token) {
-      return res.status(HttpCode.OK).json({
-        Status: HttpCode.OK + " OK",
-        ["Content-Type"]: "application/json",
-        ResponseBody: {
-          token: token,
-          user: {
-            email: email,
-            subscription: user.subscription,
-            avatar: user.avatar,
-          },
-        },
+    if (!user || !token) {
+      return res.status(HttpCode.UNAUTHORIZED).json({
+        Status: HttpCode.UNAUTHORIZED,
+        data: "Unauthorized",
+        message: "Email or password is wrong",
       });
     }
 
-    next({
-      Status: HttpCode.UNAUTHORIZED,
-      data: "Unauthorized",
-      message: "Email or password is wrong",
+    if (!user.verify) {
+      return res.status(HttpCode.UNAUTHORIZED).json({
+        Status: HttpCode.UNAUTHORIZED,
+        data: "Unauthorized",
+        message: "Verification hasn't been passed",
+      });
+    }
+
+    return res.status(HttpCode.OK).json({
+      Status: HttpCode.OK + " OK",
+      ["Content-Type"]: "application/json",
+      ResponseBody: {
+        token: token,
+        user: {
+          email: email,
+          subscription: user.subscription,
+          avatar: user.avatar,
+        },
+      },
     });
   } catch (e) {
     next(e);
@@ -120,9 +132,32 @@ const saveAvatarToStatic = async (req) => {
   return avatarUrl;
 };
 
+const verify = async (req, res, next) => {
+  try {
+    const user = await authService.findByVerifyToken(req.params.token);
+
+    if (user) {
+      await authService.updateVerifyToken(user.id, true, null);
+
+      return res.json({
+        Status: HttpCode.OK + " OK",
+        message: "Verification successfully finished!",
+      });
+    }
+
+    return res.status(HttpCode.BAD_REQUEST).json({
+      Status: HttpCode.NOT_FOUND + " Not Found",
+      message: "User not found",
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
 module.exports = {
   reg,
   login,
   logout,
   avatars,
+  verify,
 };

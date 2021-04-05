@@ -6,6 +6,10 @@ const SALT_FACTOR = 6;
 
 const userSchema = new Schema(
   {
+    name: {
+      type: String,
+      default: "Guest",
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -40,13 +44,17 @@ const userSchema = new Schema(
         return gravatar.url(this.email, { s: "250" }, true);
       },
     },
-    imgCloudId: {
-      type: String,
-      default: null,
-    },
     token: {
       type: String,
       default: null,
+    },
+    verify: {
+      type: Boolean,
+      default: false,
+    },
+    verifyToken: {
+      type: String,
+      required: [true, "Verification token required"],
     },
   },
   { versionKey: false, timestamps: true }

@@ -33,6 +33,21 @@ class AuthService {
     const data = await this.models.users.updateAvatar(id, avatar, imgCloudId);
     return data;
   }
+
+  async findByVerifyToken(verifyToken) {
+    const data = await this.models.users.findByVerifyToken(verifyToken);
+    return data;
+  }
+
+  async updateVerifyToken(id, verify, verifyToken) {
+    const data = await this.models.users.updateVerifyToken(
+      id,
+      verify,
+      verifyToken
+    );
+
+    return data;
+  }
 }
 
 module.exports = AuthService;

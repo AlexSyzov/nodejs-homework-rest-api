@@ -1,4 +1,4 @@
-const { UsersService } = require("../services");
+const { UsersService, EmailService } = require("../services");
 const { HttpCode } = require("../helpers/constants");
 const usersService = new UsersService();
 
@@ -11,6 +11,7 @@ const current = async (req, res, next) => {
       ["Content-Type"]: "application/json",
       ResponseBody: {
         user: {
+          name: user.name,
           email: user.email,
           avatar: user.avatar,
           subscription: user.subscription,
@@ -49,4 +50,44 @@ const updateSub = async (req, res, next) => {
   }
 };
 
-module.exports = { current, updateSub };
+const verify = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await usersService.findByEmail(email);
+
+    if (!user) {
+      return res.status(HttpCode.NOT_FOUND).json({
+        Status: HttpCode.NOT_FOUND + " Not Found",
+        ["Content-Type"]: "application/json",
+        ResponseBody: {
+          message: "You haven't registered yet",
+        },
+      });
+    }
+
+    if (!user.verify) {
+      const emailService = new EmailService(process.env.NODE_ENV);
+      await emailService.sendEmail(user.verifyToken, email, user.name);
+
+      return res.status(HttpCode.OK).json({
+        Status: HttpCode.OK + " OK",
+        ["Content-Type"]: "application/json",
+        ResponseBody: {
+          message: "Verification email sent",
+        },
+      });
+    }
+
+    return res.status(HttpCode.BAD_REQUEST).json({
+      Status: HttpCode.BAD_REQUEST + " Bad Request",
+      ["Content-Type"]: "application/json",
+      ResponseBody: {
+        message: "Verification has already been passed",
+      },
+    });
+  } catch (e) {
+    next(e);
+  }
+};
+
+module.exports = { current, updateSub, verify };

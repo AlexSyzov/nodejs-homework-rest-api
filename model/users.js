@@ -38,6 +38,20 @@ class UsersModel {
     const data = await this.model.updateOne({ _id: id }, { avatar });
     return data;
   }
+
+  async findByVerifyToken(verifyToken) {
+    const data = await this.model.findOne({ verifyToken });
+    return data;
+  }
+
+  async updateVerifyToken(id, verify, verifyToken) {
+    const data = await this.model.findOneAndUpdate(
+      { _id: id },
+      { verify, verifyToken }
+    );
+
+    return data;
+  }
 }
 
 module.exports = UsersModel;
